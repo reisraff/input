@@ -1,11 +1,13 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Linio\Component\Input;
 
+use Linio\Component\Input\Constraint\Range;
 use Linio\Component\Input\Instantiator\InstantiatorInterface;
 use Linio\Component\Input\Instantiator\PropertyInstantiator;
-use Prophecy\Argument;
+use PHPUnit\Framework\TestCase;
 
 class TestUser
 {
@@ -97,7 +99,7 @@ class TestRecursiveInputHandler extends InputHandler
     }
 }
 
-class InputHandlerTest extends \PHPUnit_Framework_TestCase
+class InputHandlerTest extends TestCase
 {
     public function testIsHandlingBasicInput()
     {
@@ -135,7 +137,7 @@ class InputHandlerTest extends \PHPUnit_Framework_TestCase
                     'name' => 'C',
                     'age' => 38,
                     'birthday' => '2000-01-03',
-                ]
+                ],
             ],
         ];
 
@@ -222,7 +224,7 @@ class InputHandlerTest extends \PHPUnit_Framework_TestCase
                     'name' => 'C',
                     'age' => 38,
                     'birthday' => '2000-01-01',
-                ]
+                ],
             ],
         ];
 
@@ -272,7 +274,7 @@ class InputHandlerTest extends \PHPUnit_Framework_TestCase
                     'name' => 'C',
                     'age' => 38,
                     'birthday' => '2000-01-01',
-                ]
+                ],
             ],
         ];
 
@@ -326,7 +328,7 @@ class InputHandlerTest extends \PHPUnit_Framework_TestCase
                     'name' => 'C',
                     'age' => 38,
                     'birthday' => '2000-01-01',
-                ]
+                ],
             ],
         ];
 
@@ -438,5 +440,70 @@ class InputHandlerTest extends \PHPUnit_Framework_TestCase
         $fanC->setAge(38);
         $fanC->setBirthday(new \DateTime('2000-01-03'));
         $this->assertEquals([$fanA, $fanB, $fanC], $child->fans);
+    }
+
+    public function testOverride()
+    {
+        $input = [
+            'price' => 'igor',
+        ];
+
+        $inputHandler = new TestConstraintOverrideType();
+        $inputHandler->bind($input);
+        $this->assertFalse($inputHandler->isValid());
+    }
+
+    public function invalidDateProvider(): \Generator
+    {
+        yield [''];
+
+        yield ['Invalid%20date'];
+
+        yield [123];
+
+        yield [false];
+
+        yield [true];
+
+        yield [[]];
+
+        yield [null];
+    }
+
+    /**
+     * @dataProvider invalidDateProvider
+     *
+     * @param mixed $datetime
+     */
+    public function testDatetimeInvalidDatetimeInput($datetime)
+    {
+        $input = [
+            'date' => $datetime,
+        ];
+
+        $inputHandler = new TestDatetimeNotValidatingDate();
+        $inputHandler->bind($input);
+        $this->assertFalse($inputHandler->isValid());
+    }
+}
+
+class TestConstraintOverrideType extends InputHandler
+{
+    public function define()
+    {
+        $this->add('price', 'int', [
+            'required' => true,
+            'constraints' => [new Range(0)],
+        ]);
+    }
+}
+
+class TestDatetimeNotValidatingDate extends InputHandler
+{
+    public function define()
+    {
+        $this->add('date', 'datetime', [
+            'required' => true,
+        ]);
     }
 }
